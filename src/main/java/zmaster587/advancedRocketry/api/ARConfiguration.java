@@ -18,7 +18,6 @@ import org.apache.logging.log4j.Logger;
 import zmaster587.advancedRocketry.api.atmosphere.AtmosphereRegister;
 import zmaster587.advancedRocketry.api.fuel.FuelRegistry;
 import zmaster587.advancedRocketry.api.fuel.FuelRegistry.FuelType;
-import zmaster587.advancedRocketry.atmosphere.AtmosphereVacuum;
 import zmaster587.advancedRocketry.dimension.DimensionManager;
 import zmaster587.advancedRocketry.integration.MatterOvedriveIntegration;
 import zmaster587.advancedRocketry.util.Asteroid;
@@ -95,6 +94,8 @@ public class ARConfiguration {
     public boolean enableNausea = true;
     @ConfigProperty
     public boolean enableOxygen = true;
+    @ConfigProperty
+    public int vacuumDamage;
     @ConfigProperty(needsSync = true)
     public boolean launchingDestroysBlocks;
     @ConfigProperty(needsSync = true)
@@ -401,7 +402,7 @@ public class ARConfiguration {
 
         //Oxygen
         arConfig.enableOxygen = config.get(OXYGEN, "EnableAtmosphericEffects", true, "Enable damage from lack of oxygen and effects from non-standard atmospheres.").getBoolean();
-        AtmosphereVacuum.damageValue = config.get(OXYGEN, "vacuumDamage", 1, "Damage taken per second in a vacuum.").getInt();
+        arConfig.vacuumDamage = config.get(OXYGEN, "vacuumDamage", 1, "Damage taken per second in a vacuum.").getInt();
         arConfig.overrideGCAir = config.get(OXYGEN, "OverrideGCAir", true, "Disable Galacticraft air and use AR oxygen on GC planets.").getBoolean();
         arConfig.oxygenVentConsumptionMult = config.get(OXYGEN, "oxygenVentConsumptionMultiplier", 1f, "Multiplier for oxygen vent O2 use per tick.").getDouble();
         arConfig.oxygenVentPowerMultiplier = config.get(OXYGEN, "OxygenVentPowerMultiplier", 1.0f, "Multiplier for oxygen vent power use.", 0, Float.MAX_VALUE).getDouble();

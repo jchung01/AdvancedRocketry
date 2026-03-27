@@ -5,55 +5,43 @@ import net.minecraft.entity.EntityLivingBase;
 import zmaster587.advancedRocketry.api.ARConfiguration;
 import zmaster587.advancedRocketry.api.IAtmosphere;
 import zmaster587.advancedRocketry.api.atmosphere.AtmosphereRegister;
+import zmaster587.advancedRocketry.atmosphere.AtmosphereBehaviors.EntityEffect;
+import zmaster587.libVulpes.LibVulpes;
 
-public class AtmosphereType implements IAtmosphere {
-
+public enum AtmosphereType implements IAtmosphere, AtmosphereImmunity {
     //We're probably not getting a polluted atmosphere type
-    public static final AtmosphereType AIR = new AtmosphereType(false, true, "air");
-    public static final AtmosphereType PRESSURIZEDAIR = new AtmosphereType(false, true, true, "PressurizedAir");
-    public static final AtmosphereType LOWOXYGEN = new AtmosphereLowOxygen(true, false, true, "lowO2");
-    public static final AtmosphereType VACUUM = new AtmosphereVacuum();
-    public static final AtmosphereType HIGHPRESSURE = new AtmosphereHighPressure(true, false, true, "HighPressure");
-    public static final AtmosphereType SUPERHIGHPRESSURE = new AtmosphereSuperHighPressure(true, false, true, "SuperHighPressure");
-    public static final AtmosphereType VERYHOT = new AtmosphereVeryHot(true, false, true, "VeryHot");
-    public static final AtmosphereType SUPERHEATED = new AtmosphereSuperheated(true, false, true, "Superheated");
-    public static final AtmosphereType NOO2 = new AtmosphereNoOxygen(true, false, false, "NoO2");
-    public static final AtmosphereType HIGHPRESSURENOO2 = new AtmosphereHighPressureNoOxygen(true, false, false, "HighPressureNoO2");
-    public static final AtmosphereType SUPERHIGHPRESSURENOO2 = new AtmosphereSuperHighPressureNoOxygen(true, false, false, "SuperHighPressureNoO2");
-    public static final AtmosphereType VERYHOTNOO2 = new AtmosphereVeryHotNoOxygen(true, false, false, "VeryHotNoO2");
-    public static final AtmosphereType SUPERHEATEDNOO2 = new AtmosphereSuperheatedNoOxygen(true, false, false, "SuperheatedNoOxygen");
-
-    static {
-        AtmosphereRegister.getInstance().registerAtmosphere(AIR);
-        AtmosphereRegister.getInstance().registerAtmosphere(PRESSURIZEDAIR);
-        AtmosphereRegister.getInstance().registerAtmosphere(VACUUM);
-        AtmosphereRegister.getInstance().registerAtmosphere(LOWOXYGEN);
-        AtmosphereRegister.getInstance().registerAtmosphere(HIGHPRESSURE);
-        AtmosphereRegister.getInstance().registerAtmosphere(SUPERHIGHPRESSURE);
-        AtmosphereRegister.getInstance().registerAtmosphere(VERYHOT);
-        AtmosphereRegister.getInstance().registerAtmosphere(SUPERHEATED);
-        AtmosphereRegister.getInstance().registerAtmosphere(NOO2);
-        AtmosphereRegister.getInstance().registerAtmosphere(HIGHPRESSURENOO2);
-        AtmosphereRegister.getInstance().registerAtmosphere(SUPERHIGHPRESSURENOO2);
-        AtmosphereRegister.getInstance().registerAtmosphere(VERYHOTNOO2);
-        AtmosphereRegister.getInstance().registerAtmosphere(SUPERHEATEDNOO2);
-    }
+    AIR(false, true, true, "air", "", EntityEffect.NONE, EquipmentRequirement.NONE),
+    PRESSURIZEDAIR(false, true, true, "PressurizedAir", "", EntityEffect.NONE, EquipmentRequirement.NONE),
+    LOWOXYGEN(true, false, true, "lowO2", "msg.noOxygen", EntityEffect.LOW_OXYGEN, EquipmentRequirement.MASK_ONLY),
+    NOO2(true, false, false, "NoO2", "msg.noOxygen", EntityEffect.NO_OXYGEN, EquipmentRequirement.MASK_ONLY),
+    VACUUM(true, false, false, "vacuum", "msg.noOxygen", EntityEffect.VACUUM, EquipmentRequirement.FULL),
+    HIGHPRESSURE(true, false, true, "HighPressure", "msg.tooDense", EntityEffect.HIGH_PRESSURE, EquipmentRequirement.FULL),
+    HIGHPRESSURENOO2(true, false, false, "HighPressureNoO2", "msg.noOxygen", EntityEffect.HIGH_PRESSURE_NO_OXYGEN, EquipmentRequirement.FULL),
+    SUPERHIGHPRESSURE(true, false, true, "SuperHighPressure", "msg.muchTooDense", EntityEffect.SUPER_HIGH_PRESSURE, EquipmentRequirement.FULL),
+    SUPERHIGHPRESSURENOO2(true, false, false, "SuperHighPressureNoO2", "msg.noOxygen", EntityEffect.SUPER_HIGH_PRESSURE, EquipmentRequirement.FULL),
+    VERYHOT(true, false, true, "VeryHot", "msg.tooHot", EntityEffect.VERY_HOT, EquipmentRequirement.FULL),
+    VERYHOTNOO2(true, false, false, "VeryHotNoO2", "msg.noOxygen", EntityEffect.VERY_HOT_NO_OXYGEN, EquipmentRequirement.FULL),
+    SUPERHEATED(true, false, true, "Superheated", "msg.tooHot", EntityEffect.SUPERHEATED, EquipmentRequirement.FULL),
+    SUPERHEATEDNOO2(true, false, false, "SuperheatedNoOxygen", "msg.noOxygen", EntityEffect.SUPERHEATED_NO_OXYGEN, EquipmentRequirement.FULL),
+    ;
 
     private boolean allowsCombustion;
     private boolean isBreathable;
-    private boolean canTick;
-    private String name;
+    private final boolean canTick;
+    private final String name;
+    private final String translationKey;
+    private final EntityEffect entityEffect;
+    private final EquipmentRequirement equipmentRequirement;
 
-    public AtmosphereType(boolean canTick, boolean isBreathable, String name) {
-        this.allowsCombustion = isBreathable;
+    AtmosphereType(boolean canTick, boolean isBreathable, boolean allowsCombustion, String name, String translationKey, EntityEffect entityEffect, EquipmentRequirement equipmentRequirement) {
+        this.allowsCombustion = allowsCombustion;
         this.isBreathable = isBreathable;
         this.canTick = canTick;
         this.name = name;
-    }
-
-    public AtmosphereType(boolean canTick, boolean isBreathable, boolean allowsCombustion, String name) {
-        this(canTick, isBreathable, name);
-        this.allowsCombustion = allowsCombustion;
+        this.translationKey = translationKey;
+        this.entityEffect = entityEffect;
+        this.equipmentRequirement = equipmentRequirement;
+        AtmosphereRegister.getInstance().registerAtmosphere(this);
     }
 
     /**
@@ -65,14 +53,10 @@ public class AtmosphereType implements IAtmosphere {
         return canTick;
     }
 
-    //TODO: check for all entities
+    //TODO: check for all entities (?)
 
-    /**
-     * @param player living entity inside this atmosphere we are ticking
-     * @return true if the atmosphere does not affect the entity in any way
-     */
-    public boolean isImmune(EntityLivingBase player) {
-        return isBreathable;
+    public boolean isImmune(EntityLivingBase entity) {
+        return AtmosphereImmunity.super.isImmune(entity);
     }
 
     public boolean isImmune(Class<? extends Entity> clazz) {
@@ -84,11 +68,6 @@ public class AtmosphereType implements IAtmosphere {
         return isBreathable;
     }
 
-    /**
-     * To be used to check if combustion can occur in this atmosphere, furnaces, torches, engines, etc could run this check
-     *
-     * @return true if the atmosphere is combustable
-     */
     public boolean allowsCombustion() {
         return allowsCombustion;
     }
@@ -96,7 +75,7 @@ public class AtmosphereType implements IAtmosphere {
     /**
      * Sets the atmosphere to be breathable or not breathable
      *
-     * @param isBreathable
+     * @param isBreathable true if breathable, false otherwise
      */
     public void setIsBreathable(boolean isBreathable) {
         this.isBreathable = isBreathable;
@@ -105,7 +84,7 @@ public class AtmosphereType implements IAtmosphere {
     /**
      * Sets the atmosphere to allow combustion or not to allow combustion
      *
-     * @param allowsCombustion
+     * @param allowsCombustion true if combustion is allowed, false otherwise
      */
     public void setAllowsCombustion(boolean allowsCombustion) {
         this.allowsCombustion = allowsCombustion;
@@ -115,21 +94,27 @@ public class AtmosphereType implements IAtmosphere {
      * @return unlocalized message to display when player is in the gas with no protection
      */
     public String getDisplayMessage() {
-        return "";
+        return translationKey.isEmpty() ? "" : LibVulpes.proxy.getLocalizedString(translationKey);
     }
 
-    //TODO: tick for all entities
+    //TODO: tick for all entities (?)
 
-    /**
-     * If the canTick() returns true then then this is called every tick on EntityLivingBase objects located inside this atmosphere
-     *
-     * @param player entity being ticked
-     */
-    public void onTick(EntityLivingBase player) {
+    public void onTick(EntityLivingBase entity) {
+        entityEffect.handle(entity, this::isImmune);
     }
 
     @Override
     public String getUnlocalizedName() {
         return name;
+    }
+
+    @Override
+    public IAtmosphere getAtmosphere() {
+        return this;
+    }
+
+    @Override
+    public EquipmentRequirement getEquipmentRequirement() {
+        return equipmentRequirement;
     }
 }

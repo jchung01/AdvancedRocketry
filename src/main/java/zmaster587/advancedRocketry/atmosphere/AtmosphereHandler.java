@@ -1,7 +1,5 @@
 package zmaster587.advancedRocketry.atmosphere;
 
-import net.minecraft.block.BlockLeaves;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
@@ -14,7 +12,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.fluids.IFluidBlock;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
@@ -62,7 +59,6 @@ public class AtmosphereHandler {
      * @param dimId the dimension id to register the dimension for
      */
     public static void registerWorld(int dimId) {
-
         //If O2 is allowed and
         DimensionProperties dimProp = DimensionManager.getInstance().getDimensionProperties(dimId);
         if (ARConfiguration.getCurrentConfig().enableOxygen && dimProp.hasSurface() && (ARConfiguration.getCurrentConfig().overrideGCAir || dimId != ARConfiguration.getCurrentConfig().MoonId || dimProp.isNativeDimension)) {
@@ -79,9 +75,7 @@ public class AtmosphereHandler {
     public static void unregisterWorld(int dimId) {
         AtmosphereHandler handler = dimensionOxygen.remove(dimId);
         if (ARConfiguration.getCurrentConfig().enableOxygen && handler != null) {
-
             MinecraftForge.EVENT_BUS.unregister(handler);
-            FMLCommonHandler.instance().bus().unregister(handler);
         }
     }
 
