@@ -27,6 +27,7 @@ import zmaster587.libVulpes.util.HashedBlockPosition;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,24 +46,25 @@ public class AtmosphereHandler {
     private static HashMap<EntityPlayer, IAtmosphere> prevAtmosphere = new HashMap<>();
     private HashMap<IBlobHandler, AreaBlob> blobs;
     @Nullable
-    private final AtmosphereBlockListener blockListener;
+    private AtmosphereBlockListener blockListener;
     private int dimId;
 
-    private AtmosphereHandler(int dimId, World world, DimensionProperties dimProp) {
+    private AtmosphereHandler(int dimId, DimensionProperties dimProp) {
         this.dimId = dimId;
         blobs = new HashMap<>();
 
+        updateBlockListener(dimProp);
+    }
+
+    public void updateBlockListener(DimensionProperties dimProp) {
         // Create block listener if required
         AtmosphereBlockListener blockListener = null;
         IAtmosphere atmosphere = dimProp.getAtmosphere();
         if (atmosphere instanceof AtmosphereType) {
+            AtmosphereType atmosphereType = (AtmosphereType) atmosphere;
             for (AtmosphereBehaviors.BlockEffect effect : AtmosphereBehaviors.BlockEffect.values()) {
-                AtmosphereType atmosphereType = (AtmosphereType) atmosphere;
-                if (effect.canHandle(atmosphereType)) {
-                    AtmosphereHandler handler = getOxygenHandler(world.provider.getDimension());
-                    if (handler == null) break;
-
-                    blockListener = new AtmosphereBlockListener(handler, effect);
+                if (effect.canHandle(atmosphereType)) {;
+                    blockListener = new AtmosphereBlockListener(this, effect);
                     break;
                 }
             }
@@ -74,13 +76,12 @@ public class AtmosphereHandler {
      * Registers the Atmosphere handler for the dimension given
      *
      * @param dimId the dimension id to register the dimension for
-     * @param world the actual dimension (do not store)
      */
-    public static void registerWorld(int dimId, World world) {
+    public static void registerWorld(int dimId) {
         //If O2 is allowed and
         DimensionProperties dimProp = DimensionManager.getInstance().getDimensionProperties(dimId);
         if (ARConfiguration.getCurrentConfig().enableOxygen && dimProp.hasSurface() && (ARConfiguration.getCurrentConfig().overrideGCAir || dimId != ARConfiguration.getCurrentConfig().MoonId || dimProp.isNativeDimension)) {
-            dimensionOxygen.put(dimId, new AtmosphereHandler(dimId, world, dimProp));
+            dimensionOxygen.put(dimId, new AtmosphereHandler(dimId, dimProp));
             MinecraftForge.EVENT_BUS.register(dimensionOxygen.get(dimId));
         }
     }
@@ -195,6 +196,9 @@ public class AtmosphereHandler {
      */
     @Nonnull
     protected List<AreaBlob> getBlobWithinRadius(@Nonnull HashedBlockPosition pos, int radius) {
+        if (blobs.isEmpty()) {
+            return Collections.emptyList();
+        }
         LinkedList<AreaBlob> list = new LinkedList<>();
         for (AreaBlob blob : blobs.values()) {
             if (blob.getRootPosition().getDistance(pos) - radius <= 0) {
@@ -302,6 +306,7 @@ public class AtmosphereHandler {
                 }
             }
 
+            //TODO: Cache this
             return getDefaultAtmosphereType();
         }
 

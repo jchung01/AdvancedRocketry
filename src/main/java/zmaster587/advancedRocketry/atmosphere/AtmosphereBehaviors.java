@@ -8,6 +8,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.MobEffects;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IPlantable;
@@ -23,6 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static zmaster587.advancedRocketry.atmosphere.AtmosphereType.SUPERHEATED;
+import static zmaster587.advancedRocketry.atmosphere.AtmosphereType.VACUUM;
 
 public class AtmosphereBehaviors {
     /**
@@ -129,17 +131,27 @@ public class AtmosphereBehaviors {
     }
 
     public enum BlockEffect {
+        NONE(EnumSet.noneOf(AtmosphereType.class), ((world, pos, state) -> {})),
         COMBUST(EnumSet.of(SUPERHEATED), (world, pos, state) -> {
             Block block = state.getBlock();
+            if (block == Blocks.AIR) return;
+
+            // Flammable-based checks
+            if (block instanceof IPlantable || Blocks.FIRE.canCatchFire(world, pos, EnumFacing.UP)) {
+                world.setBlockState(pos, Blocks.FIRE.getDefaultState(), BLOCK_EFFECT_FLAG);
+                return;
+            }
+            // Material-based checks
             Material material = state.getMaterial();
-            if (block instanceof IPlantable
-                    || material == Material.WEB || material == Material.CLOTH || material == Material.GOURD
+            if (material == Material.WEB || material == Material.CLOTH || material == Material.GOURD
                     || isFoliage(world, state, pos, block, material)) {
                 world.setBlockState(pos, Blocks.FIRE.getDefaultState(), BLOCK_EFFECT_FLAG);
             }
         }),
-        VAPORIZE_GAS(EnumSet.of(AtmosphereType.VACUUM), (world, pos, state) -> {
+        VAPORIZE_GAS(EnumSet.of(VACUUM), (world, pos, state) -> {
             Block block = state.getBlock();
+            if (block == Blocks.AIR) return;
+
             Material material = state.getMaterial();
             if (material == Material.WATER && block instanceof IFluidBlock) {
                 IFluidBlock fluidBlock = (IFluidBlock) block;
@@ -198,7 +210,7 @@ public class AtmosphereBehaviors {
 
         public boolean handle(World world, BlockPos pos, IBlockState newState, int flags) {
             // Prevent recursive calls
-            if (flags == BLOCK_EFFECT_FLAG) {
+            if ((flags & MODIFIED_BY_ATMOSPHERE) != 0) {
                 return false;
             }
             behavior.accept(world, pos, newState);

@@ -23,8 +23,8 @@ public class AtmosphereBlockListener  {
     }
 
     public void notifyBlockUpdate(World world, BlockPos pos, IBlockState state, int flags) {
-        // A block in a blob may have a different atmosphere type, check it.
         IAtmosphere typeAtPos = handler.getAtmosphereType(pos);
+        // Only process effect if it's the expected type (not in a blob)
         if (typeAtPos instanceof AtmosphereType && effect.canHandle((AtmosphereType) typeAtPos)) {
             boolean handled = effect.handle(world, pos, state, flags);
             // Prevent recursive calls
@@ -33,8 +33,9 @@ public class AtmosphereBlockListener  {
 
         HashedBlockPosition hPos = new HashedBlockPosition(pos);
         List<AreaBlob> nearbyBlobs = handler.getBlobWithinRadius(hPos, AtmosphereHandler.MAX_BLOB_RADIUS);
-        for (AreaBlob blob : nearbyBlobs) {
+        if (nearbyBlobs.isEmpty()) return;
 
+        for (AreaBlob blob : nearbyBlobs) {
             if (blob.getBlobMaxRadius() > hPos.getDistance(blob.getRootPosition())) {
                 if (world.isAirBlock(pos))
                     onBlockRemove(hPos);
