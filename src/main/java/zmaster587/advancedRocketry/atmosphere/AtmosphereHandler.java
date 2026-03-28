@@ -299,7 +299,7 @@ public class AtmosphereHandler {
         if (blob == null) {
             blob = new AtmosphereBlob(handler);
             blobs.put(handler, blob);
-            blob.setData(AtmosphereType.PRESSURIZEDAIR);
+            blob.setData(AtmosphereType.PRESSURIZED_AIR);
         }
     }
 
@@ -316,7 +316,7 @@ public class AtmosphereHandler {
         if (blob == null) {
             blob = blob2;
             blobs.put(handler, blob);
-            blob.setData(AtmosphereType.PRESSURIZEDAIR);
+            blob.setData(AtmosphereType.PRESSURIZED_AIR);
         }
     }
 

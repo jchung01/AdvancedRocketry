@@ -11,18 +11,18 @@ import zmaster587.libVulpes.LibVulpes;
 public enum AtmosphereType implements IAtmosphere, AtmosphereImmunity {
     //We're probably not getting a polluted atmosphere type
     AIR(false, true, true, "air", "", EntityEffect.NONE, EquipmentRequirement.NONE),
-    PRESSURIZEDAIR(false, true, true, "PressurizedAir", "", EntityEffect.NONE, EquipmentRequirement.NONE),
-    LOWOXYGEN(true, false, true, "lowO2", "msg.noOxygen", EntityEffect.LOW_OXYGEN, EquipmentRequirement.MASK_ONLY),
-    NOO2(true, false, false, "NoO2", "msg.noOxygen", EntityEffect.NO_OXYGEN, EquipmentRequirement.MASK_ONLY),
+    PRESSURIZED_AIR(false, true, true, "PressurizedAir", "", EntityEffect.NONE, EquipmentRequirement.NONE),
+    LOW_O2(true, false, true, "lowO2", "msg.noOxygen", EntityEffect.LOW_OXYGEN, EquipmentRequirement.MASK_ONLY),
+    NO_O2(true, false, false, "NoO2", "msg.noOxygen", EntityEffect.NO_OXYGEN, EquipmentRequirement.MASK_ONLY),
     VACUUM(true, false, false, "vacuum", "msg.noOxygen", EntityEffect.VACUUM, EquipmentRequirement.FULL),
-    HIGHPRESSURE(true, false, true, "HighPressure", "msg.tooDense", EntityEffect.HIGH_PRESSURE, EquipmentRequirement.FULL),
-    HIGHPRESSURENOO2(true, false, false, "HighPressureNoO2", "msg.noOxygen", EntityEffect.HIGH_PRESSURE_NO_OXYGEN, EquipmentRequirement.FULL),
-    SUPERHIGHPRESSURE(true, false, true, "SuperHighPressure", "msg.muchTooDense", EntityEffect.SUPER_HIGH_PRESSURE, EquipmentRequirement.FULL),
-    SUPERHIGHPRESSURENOO2(true, false, false, "SuperHighPressureNoO2", "msg.noOxygen", EntityEffect.SUPER_HIGH_PRESSURE, EquipmentRequirement.FULL),
-    VERYHOT(true, false, true, "VeryHot", "msg.tooHot", EntityEffect.VERY_HOT, EquipmentRequirement.FULL),
-    VERYHOTNOO2(true, false, false, "VeryHotNoO2", "msg.noOxygen", EntityEffect.VERY_HOT_NO_OXYGEN, EquipmentRequirement.FULL),
+    HIGH_PRESSURE(true, false, true, "HighPressure", "msg.tooDense", EntityEffect.HIGH_PRESSURE, EquipmentRequirement.FULL),
+    HIGH_PRESSURE_NO_O2(true, false, false, "HighPressureNoO2", "msg.noOxygen", EntityEffect.HIGH_PRESSURE_NO_OXYGEN, EquipmentRequirement.FULL),
+    SUPER_HIGH_PRESSURE(true, false, true, "SuperHighPressure", "msg.muchTooDense", EntityEffect.SUPER_HIGH_PRESSURE, EquipmentRequirement.FULL),
+    SUPER_HIGH_PRESSURE_NO_O2(true, false, false, "SuperHighPressureNoO2", "msg.noOxygen", EntityEffect.SUPER_HIGH_PRESSURE, EquipmentRequirement.FULL),
+    VERY_HOT(true, false, true, "VeryHot", "msg.tooHot", EntityEffect.VERY_HOT, EquipmentRequirement.FULL),
+    VERY_HOT_NO_O2(true, false, false, "VeryHotNoO2", "msg.noOxygen", EntityEffect.VERY_HOT_NO_OXYGEN, EquipmentRequirement.FULL),
     SUPERHEATED(true, false, true, "Superheated", "msg.tooHot", EntityEffect.SUPERHEATED, EquipmentRequirement.FULL),
-    SUPERHEATEDNOO2(true, false, false, "SuperheatedNoOxygen", "msg.noOxygen", EntityEffect.SUPERHEATED_NO_OXYGEN, EquipmentRequirement.FULL),
+    SUPERHEATED_NO_O2(true, false, false, "SuperheatedNoOxygen", "msg.noOxygen", EntityEffect.SUPERHEATED_NO_OXYGEN, EquipmentRequirement.FULL),
     ;
 
     private boolean allowsCombustion;

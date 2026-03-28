@@ -829,24 +829,24 @@ public class DimensionProperties implements Cloneable, IDimensionProperties {
             if (averageTemperature >= 900)
                 return AtmosphereType.SUPERHEATED;
             if (Temps.getTempFromValue(getAverageTemp()) == Temps.TOOHOT)
-                return AtmosphereType.VERYHOT;
+                return AtmosphereType.VERY_HOT;
             if (AtmosphereTypes.getAtmosphereTypeFromValue(getAtmosphereDensity()) == AtmosphereTypes.SUPERHIGHPRESSURE)
-                return AtmosphereType.SUPERHIGHPRESSURE;
+                return AtmosphereType.SUPER_HIGH_PRESSURE;
             if (AtmosphereTypes.getAtmosphereTypeFromValue(getAtmosphereDensity()) == AtmosphereTypes.HIGHPRESSURE)
-                return AtmosphereType.HIGHPRESSURE;
+                return AtmosphereType.HIGH_PRESSURE;
             if (AtmosphereTypes.getAtmosphereTypeFromValue(getAtmosphereDensity()) == AtmosphereTypes.LOW)
-                return AtmosphereType.LOWOXYGEN;
+                return AtmosphereType.LOW_O2;
             return AtmosphereType.AIR;
         } else if (hasAtmosphere() && !hasOxygen) {
             if (averageTemperature >= 900)
-                return AtmosphereType.SUPERHEATEDNOO2;
+                return AtmosphereType.SUPERHEATED_NO_O2;
             if (Temps.getTempFromValue(averageTemperature) == Temps.TOOHOT)
-                return AtmosphereType.VERYHOTNOO2;
+                return AtmosphereType.VERY_HOT_NO_O2;
             if (AtmosphereTypes.getAtmosphereTypeFromValue(getAtmosphereDensity()) == AtmosphereTypes.SUPERHIGHPRESSURE)
-                return AtmosphereType.SUPERHIGHPRESSURENOO2;
+                return AtmosphereType.SUPER_HIGH_PRESSURE_NO_O2;
             if (AtmosphereTypes.getAtmosphereTypeFromValue(getAtmosphereDensity()) == AtmosphereTypes.HIGHPRESSURE)
-                return AtmosphereType.HIGHPRESSURENOO2;
-            return AtmosphereType.NOO2;
+                return AtmosphereType.HIGH_PRESSURE_NO_O2;
+            return AtmosphereType.NO_O2;
         }
         return AtmosphereType.VACUUM;
     }

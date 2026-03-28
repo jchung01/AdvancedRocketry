@@ -241,7 +241,7 @@ public class ItemSpaceArmor extends ItemArmor implements ISpecialArmor, ICapabil
 
     @Override
     public boolean protectsFromSubstance(IAtmosphere atmosphere, @Nonnull ItemStack stack, boolean commitProtection) {
-        return (atmosphere == AtmosphereType.SUPERHIGHPRESSURE || atmosphere == AtmosphereType.HIGHPRESSURE || atmosphere == AtmosphereType.VACUUM || atmosphere == AtmosphereType.VERYHOT || atmosphere == AtmosphereType.SUPERHEATED || atmosphere == AtmosphereType.LOWOXYGEN || atmosphere == AtmosphereType.SUPERHIGHPRESSURENOO2 || atmosphere == AtmosphereType.HIGHPRESSURENOO2 || atmosphere == AtmosphereType.VERYHOTNOO2 || atmosphere == AtmosphereType.SUPERHEATEDNOO2 || atmosphere == AtmosphereType.NOO2);
+        return (atmosphere == AtmosphereType.SUPER_HIGH_PRESSURE || atmosphere == AtmosphereType.HIGH_PRESSURE || atmosphere == AtmosphereType.VACUUM || atmosphere == AtmosphereType.VERY_HOT || atmosphere == AtmosphereType.SUPERHEATED || atmosphere == AtmosphereType.LOW_O2 || atmosphere == AtmosphereType.SUPER_HIGH_PRESSURE_NO_O2 || atmosphere == AtmosphereType.HIGH_PRESSURE_NO_O2 || atmosphere == AtmosphereType.VERY_HOT_NO_O2 || atmosphere == AtmosphereType.SUPERHEATED_NO_O2 || atmosphere == AtmosphereType.NO_O2);
     }
 
     @Override

@@ -189,7 +189,7 @@ public class PlanetEventHandler {
         }
  */
         if (event.getEntity().isInWater()) {
-            if (AtmosphereType.LOWOXYGEN.isImmune(event.getEntityLiving()))
+            if (AtmosphereType.LOW_O2.isImmune(event.getEntityLiving()))
                 event.getEntity().setAir(300);
         }
 

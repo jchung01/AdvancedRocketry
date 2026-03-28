@@ -262,7 +262,7 @@ public class TileOxygenVent extends TileInventoriedRFConsumerTank implements IBl
 
                         activateAdjBlocks();
 
-                        atmhandler.setAtmosphereType(this, AtmosphereType.PRESSURIZEDAIR);
+                        atmhandler.setAtmosphereType(this, AtmosphereType.PRESSURIZED_AIR);
                     }
                 } else if (hasFluid) {
                     atmhandler.setAtmosphereType(this, DimensionManager.getInstance().getDimensionProperties(this.world.provider.getDimension()).getAtmosphere());
