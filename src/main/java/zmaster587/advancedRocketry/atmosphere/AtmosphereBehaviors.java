@@ -1,17 +1,36 @@
 package zmaster587.advancedRocketry.atmosphere;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.MobEffects;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.common.IPlantable;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.IFluidBlock;
+import org.apache.logging.log4j.util.TriConsumer;
 import zmaster587.advancedRocketry.api.ARConfiguration;
 import zmaster587.advancedRocketry.network.PacketOxygenState;
 import zmaster587.libVulpes.network.PacketHandler;
 
+import java.util.EnumSet;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import static zmaster587.advancedRocketry.atmosphere.AtmosphereType.SUPERHEATED;
+
 public class AtmosphereBehaviors {
+    /**
+     * Magic number (20th bit), flag to indicate setBlockState() was called by a {@link BlockEffect}
+     */
+    private static final int MODIFIED_BY_ATMOSPHERE = 0b10000000000000000000;
+    private static final int BLOCK_EFFECT_FLAG = MODIFIED_BY_ATMOSPHERE | Constants.BlockFlags.DEFAULT;
+
     public enum EntityEffect {
         NONE(0, (entity) -> {}),
         LOW_OXYGEN(20, (entity) -> {
@@ -106,6 +125,89 @@ public class AtmosphereBehaviors {
             if (!(entity instanceof EntityPlayer)) return;
 
             PacketHandler.sendToPlayer(new PacketOxygenState(), (EntityPlayer) entity);
+        }
+    }
+
+    public enum BlockEffect {
+        COMBUST(EnumSet.of(SUPERHEATED), (world, pos, state) -> {
+            Block block = state.getBlock();
+            Material material = state.getMaterial();
+            if (block instanceof IPlantable
+                    || material == Material.WEB || material == Material.CLOTH || material == Material.GOURD
+                    || isFoliage(world, state, pos, block, material)) {
+                world.setBlockState(pos, Blocks.FIRE.getDefaultState(), BLOCK_EFFECT_FLAG);
+            }
+        }),
+        VAPORIZE_GAS(EnumSet.of(AtmosphereType.VACUUM), (world, pos, state) -> {
+            Block block = state.getBlock();
+            Material material = state.getMaterial();
+            if (material == Material.WATER && block instanceof IFluidBlock) {
+                IFluidBlock fluidBlock = (IFluidBlock) block;
+                if (fluidBlock.getFluid().isGaseous()) {
+                    world.setBlockState(pos, Blocks.AIR.getDefaultState(), BLOCK_EFFECT_FLAG);
+                }
+            }
+        }),
+        // TODO: implement SUFFOCATE
+        // sure.. causes stackoverflow left right center
+        /*
+        else if (!handler.getAtmosphereType(bpos).allowsCombustion()) {
+            if (world.getBlockState(bpos).getBlock().isLeaves(world.getBlockState(bpos), world, bpos)) {
+                if (!(Boolean)world.getBlockState(bpos).getValue(BlockLeaves.CHECK_DECAY)) {
+                    world.setBlockToAir(bpos);
+                }
+            } else if (world.getBlockState(bpos).getMaterial() == Material.FIRE) {
+                world.setBlockToAir(bpos);
+            } else if (world.getBlockState(bpos).getMaterial() == Material.CACTUS) {
+                world.setBlockToAir(bpos);
+            } else if (world.getBlockState(bpos).getMaterial() == Material.PLANTS && world.getBlockState(bpos).getBlock() != Blocks.DEADBUSH) {
+                world.setBlockState(bpos, Blocks.DEADBUSH.getDefaultState());
+            } else if (world.getBlockState(bpos).getMaterial() == Material.VINE) {
+                world.setBlockToAir(bpos);
+            } else if (world.getBlockState(bpos).getMaterial() == Material.GRASS) {
+                world.setBlockState(bpos, Blocks.DIRT.getDefaultState());
+            }
+        }
+         */
+        // TODO: implement VAPORIZE_WATER
+        // Water blocks should also vaporize and disappear
+        /*
+        yes but not like this because it crashes the game
+        every updated water causes the water next to it to update -> stackoverflow -> server goes boom
+
+
+        if (handler.getAtmosphereType(bpos) == AtmosphereType.SUPERHEATED || handler.getAtmosphereType(bpos) == AtmosphereType.SUPERHEATEDNOO2 || handler.getAtmosphereType(bpos) == AtmosphereType.VERYHOT || handler.getAtmosphereType(bpos) == AtmosphereType.VERYHOTNOO2) {
+            if (world.getBlockState(bpos).getMaterial() == Material.WATER && world.getBlockState(bpos).getValue(BlockLiquid.LEVEL) == 0) {
+                world.setBlockToAir(bpos);
+            }
+        }
+         */
+        ;
+
+        private final EnumSet<AtmosphereType> validTypes;
+        private final TriConsumer<World, BlockPos, IBlockState> behavior;
+
+        BlockEffect(EnumSet<AtmosphereType> validTypes, TriConsumer<World, BlockPos, IBlockState> behavior) {
+            this.validTypes = validTypes;
+            this.behavior = behavior;
+        }
+
+        public boolean canHandle(AtmosphereType type) {
+            return validTypes.contains(type);
+        }
+
+        public boolean handle(World world, BlockPos pos, IBlockState newState, int flags) {
+            // Prevent recursive calls
+            if (flags == BLOCK_EFFECT_FLAG) {
+                return false;
+            }
+            behavior.accept(world, pos, newState);
+            return true;
+        }
+
+        private static boolean isFoliage(World world, IBlockState state, BlockPos pos, Block block, Material material) {
+            return material == Material.LEAVES || material == Material.PLANTS || material == Material.VINE
+                    || block.isFoliage(world, pos) || block.isWood(world, pos) || block.isLeaves(state, world, pos);
         }
     }
 }

@@ -1,17 +1,15 @@
 package zmaster587.advancedRocketry.atmosphere;
 
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
-import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
@@ -38,7 +36,7 @@ public class AtmosphereHandler {
     public static final DamageSource lowOxygenDamage = new DamageSource("LowOxygen").setDamageBypassesArmor().setDamageIsAbsolute();
     public static final DamageSource heatDamage = new DamageSource("Heat").setDamageBypassesArmor().setDamageIsAbsolute();
     public static final DamageSource oxygenToxicityDamage = new DamageSource("OxygenToxicity").setDamageBypassesArmor().setDamageIsAbsolute();
-    private static final int MAX_BLOB_RADIUS = ((ARConfiguration.getCurrentConfig().atmosphereHandleBitMask & 1) == 1) ? 256 : ARConfiguration.getCurrentConfig().oxygenVentSize;
+    static final int MAX_BLOB_RADIUS = ((ARConfiguration.getCurrentConfig().atmosphereHandleBitMask & 1) == 1) ? 256 : ARConfiguration.getCurrentConfig().oxygenVentSize;
     public static long lastSuffocationTime = Integer.MIN_VALUE;
     //Stores current Atm on the CLIENT
     public static IAtmosphere currentAtm;
@@ -46,23 +44,43 @@ public class AtmosphereHandler {
     private static HashMap<Integer, AtmosphereHandler> dimensionOxygen = new HashMap<>();
     private static HashMap<EntityPlayer, IAtmosphere> prevAtmosphere = new HashMap<>();
     private HashMap<IBlobHandler, AreaBlob> blobs;
+    @Nullable
+    private final AtmosphereBlockListener blockListener;
     private int dimId;
 
-    private AtmosphereHandler(int dimId) {
+    private AtmosphereHandler(int dimId, World world, DimensionProperties dimProp) {
         this.dimId = dimId;
         blobs = new HashMap<>();
+
+        // Create block listener if required
+        AtmosphereBlockListener blockListener = null;
+        IAtmosphere atmosphere = dimProp.getAtmosphere();
+        if (atmosphere instanceof AtmosphereType) {
+            for (AtmosphereBehaviors.BlockEffect effect : AtmosphereBehaviors.BlockEffect.values()) {
+                AtmosphereType atmosphereType = (AtmosphereType) atmosphere;
+                if (effect.canHandle(atmosphereType)) {
+                    AtmosphereHandler handler = getOxygenHandler(world.provider.getDimension());
+                    if (handler == null) break;
+
+                    blockListener = new AtmosphereBlockListener(handler, effect);
+                    break;
+                }
+            }
+        }
+        this.blockListener = blockListener;
     }
 
     /**
      * Registers the Atmosphere handler for the dimension given
      *
      * @param dimId the dimension id to register the dimension for
+     * @param world the actual dimension (do not store)
      */
-    public static void registerWorld(int dimId) {
+    public static void registerWorld(int dimId, World world) {
         //If O2 is allowed and
         DimensionProperties dimProp = DimensionManager.getInstance().getDimensionProperties(dimId);
         if (ARConfiguration.getCurrentConfig().enableOxygen && dimProp.hasSurface() && (ARConfiguration.getCurrentConfig().overrideGCAir || dimId != ARConfiguration.getCurrentConfig().MoonId || dimProp.isNativeDimension)) {
-            dimensionOxygen.put(dimId, new AtmosphereHandler(dimId));
+            dimensionOxygen.put(dimId, new AtmosphereHandler(dimId, world, dimProp));
             MinecraftForge.EVENT_BUS.register(dimensionOxygen.get(dimId));
         }
     }
@@ -87,109 +105,20 @@ public class AtmosphereHandler {
     }
 
     //Called from setBlock in World.class
-    public static void onBlockChange(@Nonnull World world, @Nonnull BlockPos bpos) {
+    public static void onBlockChange(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState newState, int flags) {
+        if (world.isRemote) return;
+        if (!ARConfiguration.getCurrentConfig().enableOxygen) return;
+        if (world.getChunkProvider().getLoadedChunk(pos.getX() >> 4, pos.getZ() >> 4) == null) return;
 
-        // I am very sure all this shit here was NEVER tested!
+        AtmosphereHandler handler = getOxygenHandler(world.provider.getDimension());
 
-        if (ARConfiguration.getCurrentConfig().enableOxygen && !world.isRemote && world.getChunkFromBlockCoords(new BlockPos(bpos)).isLoaded()) {
-            HashedBlockPosition pos = new HashedBlockPosition(bpos);
+        //Bonus chests cause world gen to begin before loading the world
+        //Because atmosphere handlers are created at world load time
+        //there is a possibility handler can be null here
+        if (handler == null) return;
+        if (handler.blockListener == null) return;
 
-            AtmosphereHandler handler = getOxygenHandler(world.provider.getDimension());
-
-            //Bonus chests cause world gen to begin before loading the world
-            //Because atmosphere handlers are created at world load time
-            //there is a possibility handler can be null here
-            if (handler == null)
-                return; //WTF
-
-            //Block handling for what should and shouldn't exist or what should be on fire
-            //Things should be on fire
-            if (handler.getAtmosphereType(bpos) == AtmosphereType.SUPERHEATED) {
-                if (world.getBlockState(bpos).getBlock().isLeaves(world.getBlockState(bpos), world, bpos)) {
-                    world.setBlockToAir(bpos);
-                } else if (world.getBlockState(bpos).getMaterial() == Material.CACTUS) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.PLANTS) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.VINE) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getBlock().isLeaves(world.getBlockState(bpos), world, bpos)) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.WOOD) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.WEB) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.CARPET) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.CLOTH) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.GOURD) {
-                    world.setBlockState(bpos, Blocks.FIRE.getDefaultState());
-                }
-            }
-
-
-            // sure.. causes stackoverflow left right center
-            /*
-            else if (!handler.getAtmosphereType(bpos).allowsCombustion()) {
-                if (world.getBlockState(bpos).getBlock().isLeaves(world.getBlockState(bpos), world, bpos)) {
-                    if (!(Boolean)world.getBlockState(bpos).getValue(BlockLeaves.CHECK_DECAY)) {
-                        world.setBlockToAir(bpos);
-                    }
-                } else if (world.getBlockState(bpos).getMaterial() == Material.FIRE) {
-                    world.setBlockToAir(bpos);
-                } else if (world.getBlockState(bpos).getMaterial() == Material.CACTUS) {
-                    world.setBlockToAir(bpos);
-                } else if (world.getBlockState(bpos).getMaterial() == Material.PLANTS && world.getBlockState(bpos).getBlock() != Blocks.DEADBUSH) {
-                    world.setBlockState(bpos, Blocks.DEADBUSH.getDefaultState());
-                } else if (world.getBlockState(bpos).getMaterial() == Material.VINE) {
-                    world.setBlockToAir(bpos);
-                } else if (world.getBlockState(bpos).getMaterial() == Material.GRASS) {
-                    world.setBlockState(bpos, Blocks.DIRT.getDefaultState());
-                }
-            }
-             */
-
-            //Gasses should automatically vaporize and dissipate
-            if (handler.getAtmosphereType(bpos) == AtmosphereType.VACUUM) {
-                if (world.getBlockState(bpos).getMaterial() == Material.WATER && world.getBlockState(bpos).getBlock() instanceof IFluidBlock) {
-                    IFluidBlock fluidblock = (IFluidBlock) world.getBlockState(bpos).getBlock();
-                    if (fluidblock.getFluid().isGaseous())
-                        world.setBlockToAir(bpos);
-                }
-            }
-            //Water blocks should also vaporize and disappear
-            /*
-            yes but not like this because it crashes the game
-            every updated water causes the water next to it to update -> stackoverflow -> server goes boom
-
-
-            if (handler.getAtmosphereType(bpos) == AtmosphereType.SUPERHEATED || handler.getAtmosphereType(bpos) == AtmosphereType.SUPERHEATEDNOO2 || handler.getAtmosphereType(bpos) == AtmosphereType.VERYHOT || handler.getAtmosphereType(bpos) == AtmosphereType.VERYHOTNOO2) {
-                if (world.getBlockState(bpos).getMaterial() == Material.WATER && world.getBlockState(bpos).getValue(BlockLiquid.LEVEL) == 0) {
-                    world.setBlockToAir(bpos);
-                }
-            }
-             */
-
-
-            List<AreaBlob> nearbyBlobs = handler.getBlobWithinRadius(pos, MAX_BLOB_RADIUS);
-            for (AreaBlob blob : nearbyBlobs) {
-
-                if (blob.getBlobMaxRadius() > pos.getDistance(blob.getRootPosition())) {
-                    if (world.isAirBlock(bpos))
-                        handler.onBlockRemove(pos);
-                    else {
-                        //Place block
-                        if (blob.contains(pos) && !blob.isPositionAllowed(world, pos, nearbyBlobs)) {
-                            blob.removeBlock(pos);
-                        } else if (!blob.contains(blob.getRootPosition())) {
-                            blob.addBlock(blob.getRootPosition(), nearbyBlobs);
-                        } else if (!blob.contains(pos) && blob.isPositionAllowed(world, pos, nearbyBlobs))//isFulBlock(world, pos.getBlockPos()))
-                            blob.addBlock(pos, nearbyBlobs);
-                    }
-                }
-            }
-        }
+        handler.blockListener.notifyBlockUpdate(world, pos, newState, flags);
     }
 
     /**
@@ -255,18 +184,6 @@ public class AtmosphereHandler {
     @SubscribeEvent
     public void onPlayerLogoutEvent(PlayerLoggedOutEvent event) {
         prevAtmosphere.remove(event.player);
-    }
-
-    private void onBlockRemove(HashedBlockPosition pos) {
-        List<AreaBlob> blobs = getBlobWithinRadius(pos, MAX_BLOB_RADIUS);
-        for (AreaBlob blob : blobs) {
-            //Make sure that a block can actually be attached to the blob
-            for (EnumFacing dir : EnumFacing.VALUES)
-                if (blob.contains(pos.getPositionAtOffset(dir))) {
-                    blob.addBlock(pos, blobs);
-                    break;
-                }
-        }
     }
 
     /**
@@ -372,14 +289,16 @@ public class AtmosphereHandler {
     @Nonnull
     public IAtmosphere getAtmosphereType(@Nonnull BlockPos pos2) {
         if (ARConfiguration.getCurrentConfig().enableOxygen) {
-            HashedBlockPosition pos = new HashedBlockPosition(pos2);
+            if (!blobs.isEmpty()) {
+                HashedBlockPosition pos = new HashedBlockPosition(pos2);
 
-            for (AreaBlob blob : blobs.values()) {
-                if (blob.contains(pos)) {
-                    IAtmosphere atmosphere = (IAtmosphere) blob.getData();
+                for (AreaBlob blob : blobs.values()) {
+                    if (blob.contains(pos)) {
+                        IAtmosphere atmosphere = (IAtmosphere) blob.getData();
 
-                    if (atmosphere != null)
-                        return atmosphere;
+                        if (atmosphere != null)
+                            return atmosphere;
+                    }
                 }
             }
 
